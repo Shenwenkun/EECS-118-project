@@ -350,33 +350,36 @@ class CornersProblem(p1_Search.SearchProblem):
 
 
 
-def cornersHeuristic(state: Any, problem: CornersProblem):
-    """
-    A heuristic for the CornersProblem that you defined.
-
-      state:   The current search state
-               (a data structure you chose in your search problem)
-
-      problem: The CornersProblem instance for this layout.
-
-    This function should always return a number that is a lower bound on the
-    shortest path from the state to a goal of the problem; i.e.  it should be
-    admissible.
-    """
-
-    "*** YOUR CODE HERE ***"
+# python
+def cornersHeuristic(state, problem: CornersProblem):
     position, visited = state
-    unvisited_corners = [corner for i, corner in enumerate(problem.corners) if not visited[i]]
-    heuristic = 0
-    current_position = position
-    while unvisited_corners:
-        distances = [(util.manhattanDistance(current_position, corner), corner) for corner in unvisited_corners]
-        min_distance, closest_corner = min(distances)
-        heuristic += min_distance
-        current_position = closest_corner
-        unvisited_corners.remove(closest_corner)
-    return heuristic
+    unvisited = [corner for i, corner in enumerate(problem.corners) if not visited[i]]
+    if not unvisited:
+        return 0
 
+    min_to_corner = min(util.manhattanDistance(position, c) for c in unvisited)
+
+    nodes = list(unvisited)
+    if len(nodes) == 1:
+        mst_cost = 0
+    else:
+        connected = {nodes[0]}
+        remaining = set(nodes[1:])
+        mst_cost = 0
+        while remaining:
+            best = None
+            best_cost = float('inf')
+            for a in connected:
+                for b in remaining:
+                    d = util.manhattanDistance(a, b)
+                    if d < best_cost:
+                        best_cost = d
+                        best = b
+            mst_cost += best_cost
+            connected.add(best)
+            remaining.remove(best)
+
+    return min_to_corner + mst_cost
 
 
 class AStarCornersAgent(SearchAgent):
@@ -464,9 +467,36 @@ def foodHeuristic(state: Tuple[Tuple, List[List]], problem: FoodSearchProblem):
     Subsequent calls to this heuristic can access
     problem.heuristicInfo['wallCount']
     """
-    position, foodGrid = state
+    # position, foodGrid = state
+
     "*** YOUR CODE HERE ***"
-    return 0
+    position, foodGrid = state
+    foodList = foodGrid.asList()
+    if not foodList:
+        return 0
+
+    # 当前位置到最近食物的距离
+    minDist = min(util.manhattanDistance(position, food) for food in foodList)
+
+    # 构建食物点的完全图，用曼哈顿距离作为边权
+    import heapq
+    visited = set()
+    mst_cost = 0
+    # 从第一个食物开始 Prim 算法
+    visited.add(foodList[0])
+    edges = [(util.manhattanDistance(foodList[0], f), f) for f in foodList[1:]]
+    heapq.heapify(edges)
+
+    while edges and len(visited) < len(foodList):
+        cost, f = heapq.heappop(edges)
+        if f not in visited:
+            visited.add(f)
+            mst_cost += cost
+            for other in foodList:
+                if other not in visited:
+                    heapq.heappush(edges, (util.manhattanDistance(f, other), other))
+
+    return minDist + mst_cost
 
 
 class ClosestDotSearchAgent(SearchAgent):
