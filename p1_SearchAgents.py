@@ -474,29 +474,9 @@ def foodHeuristic(state: Tuple[Tuple, List[List]], problem: FoodSearchProblem):
     foodList = foodGrid.asList()
     if not foodList:
         return 0
-
-    # 当前位置到最近食物的距离
-    minDist = min(util.manhattanDistance(position, food) for food in foodList)
-
-    # 构建食物点的完全图，用曼哈顿距离作为边权
-    import heapq
-    visited = set()
-    mst_cost = 0
-    # 从第一个食物开始 Prim 算法
-    visited.add(foodList[0])
-    edges = [(util.manhattanDistance(foodList[0], f), f) for f in foodList[1:]]
-    heapq.heapify(edges)
-
-    while edges and len(visited) < len(foodList):
-        cost, f = heapq.heappop(edges)
-        if f not in visited:
-            visited.add(f)
-            mst_cost += cost
-            for other in foodList:
-                if other not in visited:
-                    heapq.heappush(edges, (util.manhattanDistance(f, other), other))
-
-    return minDist + mst_cost
+    # 计算当前位置到所有食物的 mazeDistance
+    distances = [mazeDistance(position, food, problem.startingGameState) for food in foodList]
+    return max(distances)
 
 
 class ClosestDotSearchAgent(SearchAgent):
